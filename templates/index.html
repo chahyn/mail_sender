@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InternMail — Internship Campaign Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #0c0e14;
+    --surface:  #13161f;
+    --card:     #1a1e2a;
+    --border:   #262c3d;
+    --accent:   #5b7cfa;
+    --accent2:  #a78bfa;
+    --green:    #34d399;
+    --yellow:   #fbbf24;
+    --red:      #f87171;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --radius:   12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; }
+
+  /* ── Layout ── */
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 24px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent2); }
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-weight: 600; font-size: .875rem;
+    transition: all .2s;
+  }
+  nav a.active, nav a:hover { background: var(--card); color: var(--text); }
+  nav a.active { color: var(--accent); }
+  .ico { font-size: 1.1rem; }
+
+  main { padding: 36px 40px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 6px; }
+  .sub { color: var(--muted); font-size: .875rem; margin-bottom: 28px; font-family: 'DM Mono', monospace; }
+
+  /* ── Stats bar ── */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .stat-card .val { font-size: 2rem; font-weight: 800; line-height: 1; }
+  .stat-card .lbl { color: var(--muted); font-size: .75rem; margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .stat-card.sent   .val { color: var(--accent); }
+  .stat-card.opened .val { color: var(--green); }
+  .stat-card.sched  .val { color: var(--yellow); }
+  .stat-card.failed .val { color: var(--red); }
+
+  /* ── Compose form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .full { grid-column: 1/-1; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; text-transform: uppercase; }
+  input, textarea, select {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 14px;
+    font-family: 'DM Mono', monospace; font-size: .875rem;
+    outline: none; transition: border .2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 180px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 8px; border: none;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: .875rem;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4a6cf7; }
+  .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid #f8717140; }
+  .btn-danger:hover { background: #f8717115; }
+  .btn-sm { padding: 6px 12px; font-size: .8rem; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .ai-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 0; }
+  .ai-row > div { flex: 1; }
+
+  /* ── Email list ── */
+  .email-list { display: flex; flex-direction: column; gap: 12px; }
+  .email-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+    transition: border .2s;
+  }
+  .email-card:hover { border-color: var(--accent); }
+  .email-card .to { font-weight: 700; font-size: .95rem; }
+  .email-card .company { color: var(--muted); font-size: .8rem; font-family: 'DM Mono', monospace; }
+  .email-card .subject { font-size: .85rem; color: var(--accent2); margin-top: 4px; }
+  .email-card .meta { color: var(--muted); font-size: .75rem; margin-top: 6px; font-family: 'DM Mono', monospace; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px; font-size: .7rem; font-weight: 700;
+  }
+  .badge-scheduled { background: #fbbf2420; color: var(--yellow); }
+  .badge-sent      { background: #5b7cfa20; color: var(--accent); }
+  .badge-opened    { background: #34d39920; color: var(--green); }
+  .badge-failed    { background: #f8717120; color: var(--red); }
+  .opens-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #34d39910; color: var(--green);
+    border: 1px solid #34d39930; border-radius: 99px;
+    padding: 2px 8px; font-size: .7rem; font-family: 'DM Mono', monospace; font-weight: 500;
+  }
+  .card-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* ── Settings ── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 700px; }
+  .settings-grid .full { grid-column: 1/-1; }
+  .info-box {
+    background: #5b7cfa10; border: 1px solid #5b7cfa30;
+    border-radius: 10px; padding: 14px 16px; font-size: .82rem;
+    line-height: 1.6; color: var(--muted); margin-bottom: 20px; max-width: 700px;
+  }
+  .info-box strong { color: var(--accent); }
+
+  /* ── Loader ── */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ffffff40; border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: .875rem; font-weight: 600;
+    opacity: 0; transform: translateY(10px);
+    transition: all .3s; pointer-events: none; z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.ok   { border-color: var(--green); color: var(--green); }
+  #toast.err  { border-color: var(--red);   color: var(--red); }
+
+  /* ── Tracking modal ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: #0009; z-index: 100; align-items: center; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 32px; max-width: 500px; width: 90%;
+  }
+  .modal h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
+  .open-time {
+    background: var(--surface); border-radius: 6px; padding: 6px 12px;
+    font-family: 'DM Mono', monospace; font-size: .78rem; color: var(--green);
+    margin-bottom: 6px;
+  }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ── CV upload ── */
+  .cv-zone {
+    border: 2px dashed var(--border); border-radius: 10px;
+    padding: 18px; text-align: center; cursor: pointer;
+    transition: border .2s; font-size: .85rem; color: var(--muted);
+  }
+  .cv-zone:hover { border-color: var(--accent); }
+  .cv-zone.has-file { border-color: var(--green); color: var(--green); }
+
+  /* ── Bulk import ── */
+  .bulk-area { font-family: 'DM Mono', monospace; font-size: .82rem; min-height: 100px; }
+
+  .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 14px; color: var(--accent2); }
+  .mb16 { margin-bottom: 16px; }
+  .mb24 { margin-bottom: 24px; }
+  .mt16 { margin-top: 16px; }
+  .flex-row { display: flex; gap: 10px; }
+  .empty { color: var(--muted); font-size: .875rem; text-align: center; padding: 40px; font-family: 'DM Mono', monospace; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<aside>
+  <div class="logo">Intern<span>Mail</span></div>
+  <nav>
+    <a href="#" class="active" data-page="dashboard"><span class="ico">📊</span> Dashboard</a>
+    <a href="#" data-page="compose"><span class="ico">✉️</span> Compose</a>
+    <a href="#" data-page="campaigns"><span class="ico">📬</span> Campaigns</a>
+    <a href="#" data-page="settings"><span class="ico">⚙️</span> Settings</a>
+  </nav>
+</aside>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <h1>Dashboard</h1>
+    <p class="sub">// internship campaign overview</p>
+    <div class="stats">
+      <div class="stat-card sent">  <div class="val" id="s-sent">—</div><div class="lbl">SENT</div></div>
+      <div class="stat-card opened"><div class="val" id="s-opened">—</div><div class="lbl">OPENED</div></div>
+      <div class="stat-card sched"> <div class="val" id="s-sched">—</div><div class="lbl">SCHEDULED</div></div>
+      <div class="stat-card failed"><div class="val" id="s-failed">—</div><div class="lbl">FAILED</div></div>
+    </div>
+    <div class="section-title">Recent Activity</div>
+    <div id="recent-list" class="email-list"><p class="empty">No emails yet. Go to Compose to create your first campaign.</p></div>
+  </div>
+
+  <!-- COMPOSE -->
+  <div class="page" id="page-compose">
+    <h1>Compose</h1>
+    <p class="sub">// generate & schedule internship emails</p>
+
+    <div class="section-title mb16">1 — Upload your CV</div>
+    <div class="cv-zone mb24" id="cv-zone" onclick="document.getElementById('cv-input').click()">
+      📎 Click to upload your CV (PDF)
+      <input type="file" id="cv-input" accept=".pdf" style="display:none" onchange="uploadCV(this)"/>
+    </div>
+
+    <div class="section-title mb16">2 — Add company emails</div>
+    <div class="form-grid mb24">
+      <div class="full">
+        <label>Company emails (one per line, or comma-separated)</label>
+        <textarea class="bulk-area" id="bulk-emails" placeholder="contact@company1.com&#10;hr@startup.io&#10;recrutement@firm.tn"></textarea>
+      </div>
+      <div>
+        <label>Company name hint (optional)</label>
+        <input type="text" id="company-name" placeholder="e.g. Google Tunisia" />
+      </div>
+      <div>
+        <label>Extra context for AI (optional)</label>
+        <input type="text" id="extra-info" placeholder="e.g. I'm a CS student interested in backend" />
+      </div>
+    </div>
+
+    <div class="section-title mb16">3 — Generate & edit email</div>
+    <div class="form-grid mb24">
+      <div class="full ai-row">
+        <div>
+          <label>Email subject</label>
+          <input type="text" id="subject" placeholder="Click 'Generate with AI' or write manually" />
+        </div>
+        <button class="btn btn-ghost" id="gen-btn" onclick="generateEmail()">
+          ✨ Generate with AI
+        </button>
+      </div>
+      <div class="full">
+        <label>Email body (HTML supported)</label>
+        <textarea id="body" placeholder="Your email content..."></textarea>
+      </div>
+    </div>
+
+    <div class="section-title mb16">4 — Schedule</div>
+    <div class="form-grid mb24">
+      <div>
+        <label>Send date & time</label>
+        <input type="datetime-local" id="send-at" />
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <button class="btn btn-primary" onclick="scheduleEmails()">📅 Schedule Emails</button>
+      <button class="btn btn-ghost" onclick="sendNowAll()">⚡ Send Now</button>
+    </div>
+  </div>
+
+  <!-- CAMPAIGNS -->
+  <div class="page" id="page-campaigns">
+    <h1>Campaigns</h1>
+    <p class="sub">// all scheduled & sent emails</p>
+    <div id="campaigns-list" class="email-list"><p class="empty">No emails yet.</p></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <h1>Settings</h1>
+    <p class="sub">// mail account & API configuration</p>
+    <div class="info-box">
+      <strong>Gmail users:</strong> Enable 2-Step Verification → generate an <strong>App Password</strong> at
+      <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">myaccount.google.com/apppasswords</a>
+      and paste it below. Do NOT use your normal Gmail password.<br/><br/>
+      <strong>Gemini API key:</strong> Get it free at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/app/apikey</a> (Google AI Studio).<br/><br/>
+      <strong>Open tracking:</strong> Set the <strong>Tracking URL</strong> to the public URL where this app is running
+      (e.g. via <a href="https://ngrok.com" target="_blank" style="color:var(--accent)">ngrok</a>:
+      <code style="font-family:'DM Mono';color:var(--accent2)">ngrok http 5000</code>). Leave blank to disable tracking.
+    </div>
+    <div class="settings-grid">
+      <div>
+        <label>Sender email</label>
+        <input type="email" id="cfg-email" placeholder="chahine.ouledouhiba@enicar.ucar.tn" />
+      </div>
+      <div>
+        <label>Your full name</label>
+        <input type="text" id="cfg-name" placeholder="Chahine Ouled Ouhiba" />
+      </div>
+      <div>
+        <label>App password (Gmail/SMTP)</label>
+        <input type="password" id="cfg-pass" placeholder="••••••••••••••••" />
+      </div>
+      <div>
+        <label>Gemini API key (for AI generation)</label>
+        <input type="password" id="cfg-api" placeholder="AIza..." />
+      </div>
+      <div>
+        <label>SMTP host</label>
+        <input type="text" id="cfg-smtp-host" placeholder="smtp.gmail.com" />
+      </div>
+      <div>
+        <label>SMTP port</label>
+        <input type="number" id="cfg-smtp-port" placeholder="587" />
+      </div>
+      <div class="full">
+        <label>Tracking URL (public URL of this server)</label>
+        <input type="text" id="cfg-tracking" placeholder="https://xxxx.ngrok.io" />
+      </div>
+    </div>
+    <button class="btn btn-primary mt16" onclick="saveConfig()">💾 Save Settings</button>
+  </div>
+
+</main>
+</div>
+
+<!-- ── Tracking modal ── -->
+<div class="overlay" id="track-overlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>📬 Open Tracking</h2>
+    <div id="modal-content"></div>
+    <hr class="divider"/>
+    <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let cvPath = "", cvName = "";
+let pendingEntries = []; // {to, subject, body}
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+document.querySelectorAll("nav a").forEach(a => {
+  a.addEventListener("click", e => {
+    e.preventDefault();
+    document.querySelectorAll("nav a").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
+    a.classList.add("active");
+    const pg = a.dataset.page;
+    document.getElementById("page-" + pg).classList.add("active");
+    if (pg === "dashboard") refreshDashboard();
+    if (pg === "campaigns") loadCampaigns();
+    if (pg === "settings")  loadSettings();
+  });
+});
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function toast(msg, type="ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show " + type;
+  setTimeout(() => t.className = "", 3200);
+}
+
+// ── CV upload ──────────────────────────────────────────────────────────────────
+async function uploadCV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("cv", file);
+  const res = await fetch("/api/upload-cv", { method: "POST", body: fd });
+  const d = await res.json();
+  if (d.error) { toast(d.error, "err"); return; }
+  cvPath = d.path; cvName = d.name;
+  const zone = document.getElementById("cv-zone");
+  zone.classList.add("has-file");
+  zone.innerHTML = `✅ ${cvName} <input type="file" id="cv-input" accept=".pdf" style="display:none" onchange="uploadCV(this)"/>`;
+  toast("CV uploaded: " + cvName);
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+async function generateEmail() {
+  const emails = parseEmails();
+  if (!emails.length) { toast("Add at least one email first", "err"); return; }
+  const btn = document.getElementById("gen-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: emails[0],
+        company_name: document.getElementById("company-name").value,
+        extra_info:   document.getElementById("extra-info").value
+      })
+    });
+    const d = await res.json();
+    if (d.error) { toast(d.error, "err"); return; }
+    document.getElementById("subject").value = d.subject;
+    document.getElementById("body").value    = d.body;
+    toast("✨ AI email generated!");
+  } catch(e) { toast("Generation failed: " + e.message, "err"); }
+  finally { btn.disabled = false; btn.innerHTML = "✨ Generate with AI"; }
+}
+
+function parseEmails() {
+  const raw = document.getElementById("bulk-emails").value;
+  return raw.split(/[\n,;]+/).map(e => e.trim()).filter(e => e.includes("@"));
+}
+
+// ── Schedule ───────────────────────────────────────────────────────────────────
+async function scheduleEmails() {
+  const emails  = parseEmails();
+  const subject = document.getElementById("subject").value;
+  const body    = document.getElementById("body").value;
+  const sendAt  = document.getElementById("send-at").value;
+  if (!emails.length) { toast("Add at least one company email", "err"); return; }
+  if (!subject || !body) { toast("Subject and body required", "err"); return; }
+  if (!sendAt) { toast("Select a send date/time", "err"); return; }
+
+  let ok = 0;
+  for (const to of emails) {
+    const res = await fetch("/api/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject, body, cv_path: cvPath,
+        company: document.getElementById("company-name").value,
+        send_at: new Date(sendAt).toISOString() })
+    });
+    const d = await res.json();
+    if (d.ok) ok++;
+  }
+  toast(`📅 Scheduled ${ok} email(s)!`);
+  clearCompose();
+}
+
+async function sendNowAll() {
+  const emails  = parseEmails();
+  const subject = document.getElementById("subject").value;
+  const body    = document.getElementById("body").value;
+  if (!emails.length || !subject || !body) { toast("Fill in emails, subject, and body first", "err"); return; }
+
+  let ok = 0;
+  for (const to of emails) {
+    const cr = await fetch("/api/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject, body, cv_path: cvPath,
+        company: document.getElementById("company-name").value,
+        send_at: new Date().toISOString() })
+    });
+    const cd = await cr.json();
+    if (!cd.id && !cd.ok) continue;
+    // now get id
+    const list = await (await fetch("/api/emails")).json();
+    const entry = list.find(e => e.to === to && e.status === "scheduled");
+    if (!entry) continue;
+    const sr = await fetch(`/api/emails/${entry.id}/send-now`, { method: "POST" });
+    const sd = await sr.json();
+    if (sd.ok) ok++;
+  }
+  toast(`⚡ Sent ${ok} email(s) now!`);
+  clearCompose();
+}
+
+function clearCompose() {
+  document.getElementById("bulk-emails").value = "";
+  document.getElementById("subject").value = "";
+  document.getElementById("body").value = "";
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+async function refreshDashboard() {
+  const stats = await (await fetch("/api/stats")).json();
+  document.getElementById("s-sent").textContent   = stats.sent;
+  document.getElementById("s-opened").textContent = stats.opened;
+  document.getElementById("s-sched").textContent  = stats.scheduled;
+  document.getElementById("s-failed").textContent = stats.failed;
+
+  const emails = await (await fetch("/api/emails")).json();
+  const recent = emails.slice(-5).reverse();
+  const el = document.getElementById("recent-list");
+  el.innerHTML = recent.length ? recent.map(renderCard).join("") : '<p class="empty">No emails yet.</p>';
+}
+
+// ── Campaigns ─────────────────────────────────────────────────────────────────
+async function loadCampaigns() {
+  const emails = await (await fetch("/api/emails")).json();
+  const el = document.getElementById("campaigns-list");
+  el.innerHTML = emails.length ? emails.slice().reverse().map(renderCard).join("") : '<p class="empty">No emails yet.</p>';
+}
+
+function renderCard(e) {
+  const badge = `<span class="badge badge-${e.status}">${e.status.toUpperCase()}</span>`;
+  const opens = e.opens > 0 ? `<span class="opens-pill">👁 ${e.opens} open${e.opens>1?"s":""}</span>` : "";
+  const sendAt = new Date(e.send_at).toLocaleString();
+  const actions = `
+    <div class="card-actions">
+      ${badge} ${opens}
+      ${e.opens > 0 ? `<button class="btn btn-ghost btn-sm" onclick="showTracking('${e.id}')">📊 Details</button>` : ""}
+      ${e.status === "scheduled" ? `<button class="btn btn-ghost btn-sm" onclick="sendEmailNow('${e.id}')">⚡ Send Now</button>` : ""}
+      <button class="btn btn-danger btn-sm" onclick="deleteEmail('${e.id}')">🗑</button>
+    </div>`;
+  return `
+    <div class="email-card" id="card-${e.id}">
+      <div>
+        <div class="to">${e.to}</div>
+        ${e.company ? `<div class="company">${e.company}</div>` : ""}
+        <div class="subject">${e.subject}</div>
+        <div class="meta">⏰ ${sendAt}${e.cv_path ? " · 📎 CV attached" : ""}</div>
+      </div>
+      ${actions}
+    </div>`;
+}
+
+async function sendEmailNow(id) {
+  const res = await fetch(`/api/emails/${id}/send-now`, { method: "POST" });
+  const d = await res.json();
+  toast(d.ok ? "⚡ Sent!" : "❌ Failed to send", d.ok ? "ok" : "err");
+  loadCampaigns(); refreshDashboard();
+}
+
+async function deleteEmail(id) {
+  await fetch(`/api/emails/${id}`, { method: "DELETE" });
+  toast("Deleted");
+  loadCampaigns(); refreshDashboard();
+}
+
+// ── Tracking modal ─────────────────────────────────────────────────────────────
+async function showTracking(id) {
+  const emails = await (await fetch("/api/emails")).json();
+  const e = emails.find(x => x.id === id);
+  if (!e) return;
+  const times = (e.open_times || []).map(t =>
+    `<div class="open-time">📅 ${new Date(t).toLocaleString()}</div>`).join("");
+  document.getElementById("modal-content").innerHTML = `
+    <p style="margin-bottom:12px"><strong>${e.to}</strong></p>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:16px">${e.subject}</p>
+    <p style="font-size:2rem;font-weight:800;color:var(--green)">${e.opens} open${e.opens !== 1 ? "s" : ""}</p>
+    <hr class="divider"/>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;font-family:'DM Mono'">OPEN TIMESTAMPS</div>
+    ${times || '<p style="color:var(--muted);font-size:.85rem">No opens recorded yet.</p>'}`;
+  document.getElementById("track-overlay").classList.add("show");
+}
+
+function closeModal() { document.getElementById("track-overlay").classList.remove("show"); }
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const c = await (await fetch("/api/config")).json();
+  document.getElementById("cfg-email").value     = c.sender_email || "chahine.ouledouhiba@enicar.ucar.tn";
+  document.getElementById("cfg-name").value      = c.sender_name  || "";
+  document.getElementById("cfg-smtp-host").value = c.smtp_host    || "smtp.gmail.com";
+  document.getElementById("cfg-smtp-port").value = c.smtp_port    || "587";
+  document.getElementById("cfg-tracking").value  = c.tracking_url || "";
+}
+
+async function saveConfig() {
+  const body = {
+    sender_email: document.getElementById("cfg-email").value,
+    sender_name:  document.getElementById("cfg-name").value,
+    smtp_host:    document.getElementById("cfg-smtp-host").value,
+    smtp_port:    document.getElementById("cfg-smtp-port").value,
+    tracking_url: document.getElementById("cfg-tracking").value,
+  };
+  const pass = document.getElementById("cfg-pass").value;
+  const api  = document.getElementById("cfg-api").value;
+  if (pass) body.app_password     = pass;
+  if (api)  body.gemini_api_key = api;
+
+  const res = await fetch("/api/config", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const d = await res.json();
+  toast(d.ok ? "✅ Settings saved!" : "❌ Failed", d.ok ? "ok" : "err");
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+refreshDashboard();
+setInterval(refreshDashboard, 30000);
+
+// set default send-at to now + 1h
+const dt = new Date(Date.now() + 3600000);
+dt.setSeconds(0,0);
+document.getElementById("send-at").value = dt.toISOString().slice(0,16);
+</script>
+</body>
+</html>
